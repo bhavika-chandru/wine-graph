@@ -217,17 +217,23 @@ The test dataset covers the awkward parts of the real data on purpose: a wine wi
 
 ## Anti-genericity appendix
 
-<!-- TODO (team): paste the naive schema a fresh AI chat produced from a one-line description, then explain each difference -->
+We gave a fresh ChatGPT chat one line, *"Design a Neo4j graph schema for a wine recommendation app using a wine reviews dataset."*, and compared its answer with what we built. The full answer is in [docs/appendix/naive_schema_chatgpt.pdf](docs/appendix/naive_schema_chatgpt.pdf).
+
+In short, it proposed `Wine`, `Winery`, `Region`, `Country`, `Grape`, `Review`, `TastingNote`, `Style` and `User` nodes, a `User` layer with `RATED`/`LIKED`/`WANTS_TO_TRY`, and a recommendation query that scores candidates by shared grape (×3) and shared region (×2). The schema is reasonable, but it is written for any wine dataset, not for this one.
 
 | Naive AI schema | Our schema | Why |
 |---|---|---|
-| TODO | Descriptor nodes | Similarity = shared descriptor nodes; a list property would force a full scan |
-| TODO | Region → Province → Country hierarchy, ragged | Rollups and region profiles; not every wine has a region |
-| TODO | No Review node | One review per wine: an extra hop with no new query |
-| TODO | Join on Variety, not wine by wine | The two sources cannot be matched wine by wine reliably |
-| TODO | Supernode filtering on descriptors | Very common notes ("fruit") connect to most wines |
+| `TastingNote` nodes listed, but never loaded ("add flavor-note extraction later"); similarity = shared grape + shared region | `Descriptor` nodes extracted in the ETL, `HAS_NOTE`, GDS Node Similarity written as `SIMILAR_TO {score}` | The review text is the richest field in the data. Two Cabernets from Napa are not similar just because they share a grape and a region; shared descriptors measure what the critic actually tasted |
+| No handling of very common notes | Supernode filtering on descriptors | Very common notes ("fruit") connect to most wines and would make every wine similar to every other |
+| `Region {name: row.province}`: province loaded as region, keyed by name only; `Region → Country` | `Region` keyed by `(name, province)`; ragged `Region → Province → Country`, or `Wine → Province` when `region_1` is empty | The dataset has three levels (`country`, `province`, `region_1`) and `region_1` is often missing. Region names repeat across provinces; the API answers 409 with the candidates instead of merging them |
+| `MERGE (:Winery {name})` | `Winery` keyed by `(name, country)` | Different producers in different countries can share a name |
+| Separate `Review` node, plus derived `avgPoints` / `reviewCount` on `Wine` to refresh after each load | No `Review` node; `points` on `Wine`, `(:Taster)-[:REVIEWED]->(:Wine)` | Each row is one critic's tasting of one bottle, and the dataset has no wine identifier to group rows by. A `Review` node adds a hop and a derived property to keep in sync for no new query. Making the taster a node is what gives us the taster-bias insight |
+| `User` layer (`RATED`, `LIKED`, `WANTS_TO_TRY`, `PREFERS`) | No users | The dataset has critics, not consumers. The ChatGPT answer itself says this layer cannot come from the data; we did not invent it |
+| `Style` = red / white / rosé, set by hand | `Descriptor.style_id` from Louvain (flavour families) | Styles found in the graph structure, not a fixed label list |
+| One source | Second source (X-Wines) joined on `Variety`, `(:Variety)-[:PAIRS_WITH {weight}]->(:Food)` | Food pairings are not in WineEnthusiast. The two sources cannot be matched wine by wine reliably, so they meet at the variety level |
+| Indexes on `name`, `avgPoints`, `vintage`; the query filters `price <= $maxPrice` on every wine | Range indexes `wine_points` and `wine_price` only, measured with `PROFILE` (202,503 → 123 db hits); optional filters added only when given | Indexes chosen from the queries we actually run. A filter written as `price <= $maxPrice` silently drops wines with no price; ours only applies it when the caller asks |
 
-**A decision we changed from the original brief:** <!-- TODO (team): e.g. the similarity fallback now only applies when a wine has no GDS neighbours at all, so scores from two methods are never mixed in one response -->
+**A decision we changed from the original brief:** the similarity endpoint first fell back to a Cypher Jaccard whenever GDS returned too few neighbours. After review, the fallback only runs when a wine has no `SIMILAR_TO` at all, so one response never mixes scores from two different methods.
 
 ---
 
