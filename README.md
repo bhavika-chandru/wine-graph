@@ -181,6 +181,11 @@ Results of `make gds` on the full data (119,929 wines, 390 s). Details and setti
 | FastRP | `wine_embed`: Wine, Descriptor, Variety, Region, Province, Winery (undirected) | 64 dims, iteration weights [0, 1, 1], seed 42 | 119,929 `Wine.fastrp` | `/api/wines/{id}/predicted-tier` |
 | Logistic regression | FastRP vectors only: points and price are not inputs | balanced class weights, 80/20 stratified split | table below | same |
 
+**The 3 flavour families** (most used notes first). Louvain only sees which notes appear together, never the grape or colour, yet the families match recognisable wine styles:
+- Style 0, fresh and white: apple, toast, citrus, mineral, peach, floral
+- Style 1, red fruit and earth (Pinot Noir-like): cherry, herb, raspberry, earth, strawberry, clove
+- Style 2, dark fruit and oak (Cabernet-like): spice, oak, blackberry, plum, vanilla, black cherry
+
 **Why lift for Louvain:** weighting pairs by raw co-occurrence lets the most popular notes link everything into one community. Lift keeps only pairs that meet more often than their popularity predicts, which is what a flavour family is.
 
 **Classifier** (`high` = 90 points or more):
