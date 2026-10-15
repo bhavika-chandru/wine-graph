@@ -119,7 +119,22 @@ curl -X POST http://localhost/api/ask -H "Content-Type: application/json" \
 
 **Pagination.** Every list takes `skip` and `limit` (max 100) and returns `has_more`, computed by fetching `limit + 1` rows instead of running a second `COUNT` query.
 
-<!-- TODO (Bhavika): Swagger screenshots in docs/img/ -->
+Interactive docs are served at `/docs` (Swagger UI).
+
+![Swagger endpoint list](docs/img/swagger_endpoints.png)
+
+<details>
+<summary>Example responses: a filtered list (200) and an unknown wine (404)</summary>
+
+`GET /api/wines?min_points=90&limit=3`, run on the synthetic benchmark dataset:
+
+![200 response](docs/img/swagger_list_200.png)
+
+`GET /api/wines/999999999`: a clean JSON error, no stack trace:
+
+![404 response](docs/img/swagger_404.png)
+
+</details>
 
 Design decisions behind the API (parameterised queries, read-only transactions, error mapping, precomputed GDS results, the value formula) are explained in [docs/backend.md](docs/backend.md).
 
