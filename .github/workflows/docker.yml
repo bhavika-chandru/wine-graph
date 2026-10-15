@@ -10,7 +10,19 @@ permissions:
   packages: write  # push to GitHub Container Registry with the built-in token, no secret to manage
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: make install
+      - run: make test
+
   build-and-push:
+    needs: test  # never publish an image whose tests fail
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
