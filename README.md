@@ -145,7 +145,7 @@ Interactive docs are served at `/docs` (Swagger UI).
 <details>
 <summary>Example responses: a filtered list (200) and an unknown wine (404)</summary>
 
-`GET /api/wines?min_points=90&limit=3`, run on the synthetic benchmark dataset:
+`GET /api/wines?min_points=90&limit=3` on the real data, through Nginx (note `server: nginx` in the response headers):
 
 ![200 response](docs/img/swagger_list_200.png)
 
@@ -235,12 +235,21 @@ Measured with `make bench` on 100,000 synthetic wines (`make bench-data`, same s
 | Wine detail: OPTIONAL MATCH chain vs pattern comprehensions | 3.6 ms | 7.6 ms | ×0.5 | 83 → 113 |
 | Pagination: full result vs `SKIP/LIMIT` | 1,734 ms | 6.1 ms | ×285 | 272,404 → 61 |
 
+Measured again on the **real data** (119,929 wines, in the Docker Compose Neo4j), same method:
+
+| Case | Before | After | Speed-up | db hits |
+|---|---|---|---|---|
+| Range filter: no index vs range index | 32.1 ms | 7.4 ms | ×4.3 | 242,473 → 1,345 |
+| Optional filters: `$x IS NULL OR` vs needed clauses only | 54.9 ms | 9.1 ms | ×6.0 | 317,731 → 6,731 |
+| Wine detail: OPTIONAL MATCH chain vs pattern comprehensions | 3.2 ms | 3.0 ms | ×1.1 | 146 → 189 |
+| Pagination: full result vs `SKIP/LIMIT` | 2,285.6 ms | 3.4 ms | ×675.1 | 323,536 → 61 |
+
 What the numbers say:
 - **Indexes and pagination** give the large gains. Without the range index Neo4j reads every Wine node; with it, the plan switches from `NodeByLabelScan` to `NodeIndexSeekByRange`.
-- **Catch-all filters** (`$x IS NULL OR w.points >= $x`) cannot be answered from an index, so the list query is built from only the clauses that are set. The gain is real but modest here, because the planner chose the price index.
-- **Pattern comprehensions** are not faster for a single wine. They are kept for correctness: they never duplicate rows, so no `collect()` or `DISTINCT` is needed.
+- **Catch-all filters** (`$x IS NULL OR w.points >= $x`) cannot be answered from an index, so the list query is built from only the clauses that are set. On the synthetic data the gain was modest (×1.3) because the planner chose the price index; on the real data it is ×6.
+- **Pattern comprehensions** are not faster for a single wine (slower on the synthetic data, equal on the real data). They are kept for correctness: they never duplicate rows, so no `collect()` or `DISTINCT` is needed.
 
-Full plans per case: [docs/benchmarks.md](docs/benchmarks.md).
+Full plans per case, on the real data: [docs/benchmarks.md](docs/benchmarks.md).
 
 | Without index: `NodeByLabelScan` | With range index: `NodeIndexSeekByRange` |
 |---|---|
@@ -303,14 +312,18 @@ In short, it proposed `Wine`, `Winery`, `Region`, `Country`, `Grape`, `Review`, 
 
 ## Team
 
-<!-- TODO (Bhavika, last step): fill from GitHub Insights → Contributors -->
+Contributions on `main` from GitHub Insights → Contributors, before this last PR (29 commits in total).
+Every change went through a pull request with at least one review from another member.
 
-| Member | Role | Commits | % | Merged PRs |
-|---|---|---|---|---|
-| Bhavika Chandru | Backend, API, performance, team lead | | | |
-| | Data and infrastructure | | | |
-| | AI agent and Graph Data Science | | | |
+| Member | Role | What they built | Commits | Lines added | Merged PRs |
+|---|---|---|---|---|---|
+| Bhavika Chandru (`bhavika-chandru`) | Backend, API, performance, team lead | FastAPI app, every endpoint's Cypher, error handling, read-only client, Nginx config, Dockerfile, live Cypher tests, benchmarks and PROFILE analysis, README | 14 (48%) | 3,863 (60%) | [list](https://github.com/bhavika-chandru/wine-graph/pulls?q=is%3Apr+is%3Amerged+author%3Abhavika-chandru) |
+| Ditri (`ditricollaku`) | AI agent and Graph Data Science | GDS pipeline (Node Similarity, lift-weighted Louvain, FastRP, tier classifier), NL→Cypher agent with guardrails and its evaluation, demo notebook | 8 (28%) | 1,757 (28%) | [list](https://github.com/bhavika-chandru/wine-graph/pulls?q=is%3Apr+is%3Amerged+author%3Aditricollaku) |
+| Yash (`yashmadori`) | Data and infrastructure | ETL for both datasets, constraints and indexes, Docker Compose stack, GitHub Actions (lint, tests, image push), diagrams | 7 (24%) | 768 (12%) | [list](https://github.com/bhavika-chandru/wine-graph/pulls?q=is%3Apr+is%3Amerged+author%3Ayashmadori) |
 
 ## Use of AI tools
 
-<!-- TODO (team): state honestly which AI tools were used and for what -->
+- **Claude (Anthropic)** was used throughout as a coding assistant: drafting code, tests and README text, suggesting review points, and debugging errors from our terminal output. Every draft was run on our machines against the real data, and changed when it failed (for example the memory-safe wipe in the ETL, the province example in the agent prompt, the Nginx health check). Review points were checked against the code before being posted.
+- **ChatGPT** produced the naive schema used in the anti-genericity appendix, from a one-line prompt in a fresh chat, so we could compare it with ours.
+- **Groq (`openai/gpt-oss-120b`)** is part of the product: it writes the Cypher and the summary for `/api/ask`. Its output is never trusted directly: guardrails, `EXPLAIN` and read-only transactions sit around it, and the summary is marked as AI-generated.
+- All design decisions (schema, keys, which algorithms, what to measure) were discussed and decided by the team, and each of us can explain the parts we own.
