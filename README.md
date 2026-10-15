@@ -67,6 +67,7 @@ Two distinct sources, joined at the level of shared dimensions (variety, country
 - Descriptors: 121 tasting terms found in the reviews, from a fixed vocabulary of about 150, with synonyms merged ("earthy" -> earth, "cassis" -> blackcurrant). 1,857 reviews contain none.
 - X-Wines is joined on grape name ("Syrah/Shiraz" matches either): 1,007 wines match 78 of the 701 varieties and give 504 `PAIRS_WITH` (a food is kept when at least 25% of that variety's X-Wines wines list it), plus the typical type, body, acidity and average crowd rating. Varieties with fewer than 3 X-Wines wines get no pairings.
 - 19 tasters; 95,012 reviews name their taster.
+- Known limitation: descriptors are matched word by word, so a few terms can be read out of context ("orange" can be the colour of an orange wine, "cream" can come from "cream sherry"). Very common terms are left out of similarity and styles by `make gds` anyway.
 
 ---
 

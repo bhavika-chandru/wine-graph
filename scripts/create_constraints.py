@@ -23,6 +23,8 @@ STATEMENTS = [
     "CREATE CONSTRAINT descriptor_name IF NOT EXISTS FOR (d:Descriptor) REQUIRE d.name IS UNIQUE",
     "CREATE CONSTRAINT food_name IF NOT EXISTS FOR (f:Food) REQUIRE f.name IS UNIQUE",
     # Composite keys: the same region / province / winery name exists in several places.
+    # These are indexes, not uniqueness constraints: the ETL MERGEs on the full key in a single
+    # session, so it cannot create duplicates, and the index makes those MERGEs fast.
     "CREATE INDEX region_key IF NOT EXISTS FOR (r:Region) ON (r.name, r.province)",
     "CREATE INDEX province_key IF NOT EXISTS FOR (p:Province) ON (p.name, p.country)",
     "CREATE INDEX winery_key IF NOT EXISTS FOR (m:Winery) ON (m.name, m.country)",

@@ -330,6 +330,9 @@ def main() -> None:
         xwines = list(csv.DictReader(handle))
     profiles = variety_profiles(xwines, known, read_ratings(RATINGS_CSV))
     print(f"X-Wines: {len(xwines):,} wines matched to {len(profiles)} WineEnthusiast varieties")
+    paired = {p["name"] for p in profiles if p["pairings"]}
+    covered = sum(w["variety"] in paired for w in wines)
+    print(f"  wines whose variety has food pairings: {covered:,} ({covered / len(wines):.0%})")
     if "--yes" not in sys.argv:
         answer = input(f"This WIPES every node in {URI} and reloads it. Type 'yes' to continue: ")
         if answer.strip().lower() != "yes":
