@@ -1,7 +1,6 @@
 # Wine Explorer: a graph-backed sommelier
 
-<!-- TODO (P2): add the GitHub Actions badges once lint.yml and test.yml are merged -->
-![lint](https://img.shields.io/badge/pylint-10.00-brightgreen) ![coverage](https://img.shields.io/badge/coverage-95%25-brightgreen)
+[![lint](https://github.com/bhavika-chandru/wine-graph/actions/workflows/lint.yml/badge.svg)](https://github.com/bhavika-chandru/wine-graph/actions/workflows/lint.yml) [![tests](https://github.com/bhavika-chandru/wine-graph/actions/workflows/test.yml/badge.svg)](https://github.com/bhavika-chandru/wine-graph/actions/workflows/test.yml) [![docker](https://github.com/bhavika-chandru/wine-graph/actions/workflows/docker.yml/badge.svg)](https://github.com/bhavika-chandru/wine-graph/actions/workflows/docker.yml)
 
 Wine Explorer answers questions about wines through the connections between them: wines that share tasting notes, regions and grapes, best-value picks, region profiles, taster bias, food pairings, flavour families, and free-form questions in plain English that are translated to Cypher.
 
@@ -29,8 +28,11 @@ Open **http://localhost/docs** for the interactive API (Swagger), served through
 
 `POST /api/ask` needs the `API_KEY` from `.env` in an `X-API-Key` header; without it the API answers 401.
 
-<!-- TODO (P2): link to the image on Docker Hub / GHCR -->
-Pre-built API image: `TODO`
+Pre-built API image (pushed by GitHub Actions on every merge to `main`): `ghcr.io/bhavika-chandru/wine-graph-api:latest`. To use it instead of building locally:
+
+```bash
+API_IMAGE=ghcr.io/bhavika-chandru/wine-graph-api:latest docker compose up -d --no-build
+```
 
 ---
 
