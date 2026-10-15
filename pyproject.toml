@@ -1,0 +1,11 @@
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["integration: needs the running docker compose stack (RUN_INTEGRATION=1)"]
+
+[tool.coverage.run]
+source = ["app"]
+omit = ["app/agent/*"]  # TODO: remove when the NL->Cypher agent is merged
