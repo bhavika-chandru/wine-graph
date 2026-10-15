@@ -1,0 +1,26 @@
+digraph schema {
+  graph [rankdir=LR, bgcolor="white", pad=0.4, nodesep=0.5, ranksep=1.0, fontname="Helvetica", label="Wine Explorer graph model\nblue = WineEnthusiast reviews   green = X-Wines   orange = written by make gds", labelloc=t, fontsize=16];
+  node  [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=12, color="#3b6ea5", fillcolor="#e8f0fa", penwidth=1.4];
+  edge  [fontname="Helvetica", fontsize=10, color="#555555", fontcolor="#333333"];
+
+  Wine       [label=<<b>Wine</b><br/><font point-size="10">id, title, points, price, vintage<br/>description, <font color="#c0661a">fastrp</font></font>>];
+  Variety    [label=<<b>Variety</b><br/><font point-size="10">name<br/><font color="#2e7d4f">wine_type, body, acidity, crowd_rating</font></font>>];
+  Winery     [label=<<b>Winery</b><br/><font point-size="10">name, country</font>>];
+  Region     [label=<<b>Region</b><br/><font point-size="10">name, province</font>>];
+  Province   [label=<<b>Province</b><br/><font point-size="10">name, country</font>>];
+  Country    [label=<<b>Country</b><br/><font point-size="10">name</font>>];
+  Taster     [label=<<b>Taster</b><br/><font point-size="10">name, twitter</font>>];
+  Descriptor [label=<<b>Descriptor</b><br/><font point-size="10">name (lowercase)<br/><font color="#c0661a">style_id, common</font></font>>];
+  Food       [label=<<b>Food</b><br/><font point-size="10">name (lowercase)</font>>, color="#2e7d4f", fillcolor="#e6f4ea"];
+
+  Wine -> Variety    [label="OF_VARIETY"];
+  Wine -> Winery     [label="MADE_BY"];
+  Wine -> Region     [label="FROM"];
+  Wine -> Province   [label="FROM\n(no region_1)", style=dashed];
+  Region -> Province [label="IN"];
+  Province -> Country [label="IN"];
+  Taster -> Wine     [label="REVIEWED"];
+  Wine -> Descriptor [label="HAS_NOTE"];
+  Variety -> Food    [label="PAIRS_WITH {weight}", color="#2e7d4f", fontcolor="#2e7d4f"];
+  Wine -> Wine       [label="SIMILAR_TO {score}", color="#c0661a", fontcolor="#c0661a", style=bold];
+}

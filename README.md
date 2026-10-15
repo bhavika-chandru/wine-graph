@@ -38,7 +38,6 @@ API_IMAGE=ghcr.io/bhavika-chandru/wine-graph-api:latest docker compose up -d --n
 
 ## Architecture
 
-<!-- TODO (P2): docs/architecture.png (services, ports, data flows) -->
 ![architecture](docs/architecture.png)
 
 | Service | Image | Port | Role |
@@ -75,8 +74,13 @@ Two distinct sources, joined at the level of shared dimensions (variety, country
 
 ## Graph model
 
-<!-- TODO (P2): docs/schema.png and docs/er_diagram.png -->
 ![schema](docs/schema.png)
+
+The same model as an entity-relationship view, with keys and cardinalities:
+
+![ER diagram](docs/er_diagram.png)
+
+Diagram sources (Graphviz) are in `docs/diagrams/`; regenerate with `dot -Tpng -Gdpi=150 docs/diagrams/schema.dot -o docs/schema.png`.
 
 ```
 (:Wine {id, title, price, points, vintage, description})
@@ -99,7 +103,10 @@ The exact property names and types agreed between ETL, API and GDS are in [docs/
 4. Matching individual wines across the two datasets: names and vintages differ, and fuzzy matching would be hard to defend.
 5. LLM-based descriptor extraction: costly and non-deterministic. A fixed keyword vocabulary is used instead.
 
-<!-- TODO (P2): ragged hierarchy, region key (name, province), supernode filtering -->
+**Three awkward parts of the real data, handled in the model:**
+- *Ragged hierarchy:* 19,501 reviews (16%) have no `region_1`, so those wines link straight to their Province. Queries reach the country with `-[:FROM]->()-[:IN*1..2]->(:Country)`, which works for both shapes.
+- *Region key:* region names repeat across provinces, so a Region is identified by `(name, province)`; `/api/regions/{name}/profile` answers 409 with the candidate provinces when a name is ambiguous.
+- *Supernodes:* "fruit" appears in 38% of reviews. `make gds` marks descriptors on more than 20% of wines as `common` and leaves them out of similarity and flavour families; otherwise every wine would look similar to every other.
 
 ---
 

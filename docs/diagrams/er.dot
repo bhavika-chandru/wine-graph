@@ -1,0 +1,55 @@
+digraph er {
+  graph [rankdir=LR, bgcolor="white", pad=0.4, nodesep=0.4, ranksep=1.1, fontname="Helvetica", label="Entity-relationship view (cardinalities and keys)", labelloc=t, fontsize=16];
+  node  [shape=plain, fontname="Helvetica", fontsize=11];
+  edge  [fontname="Helvetica", fontsize=10, color="#555555", arrowhead=none];
+
+  Wine [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="4" color="#3b6ea5">
+    <tr><td bgcolor="#3b6ea5"><font color="white"><b>Wine</b></font></td></tr>
+    <tr><td align="left">PK id : int</td></tr>
+    <tr><td align="left">title : string</td></tr>
+    <tr><td align="left">points : int (80-100)</td></tr>
+    <tr><td align="left">price : float | null</td></tr>
+    <tr><td align="left">vintage : int | null</td></tr>
+    <tr><td align="left">description : string</td></tr>
+    <tr><td align="left">fastrp : float[64]</td></tr></table>>];
+  Variety [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="4" color="#3b6ea5">
+    <tr><td bgcolor="#3b6ea5"><font color="white"><b>Variety</b></font></td></tr>
+    <tr><td align="left">PK name : string</td></tr>
+    <tr><td align="left">wine_type, body, acidity</td></tr>
+    <tr><td align="left">crowd_rating : float | null</td></tr></table>>];
+  Winery [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="4" color="#3b6ea5">
+    <tr><td bgcolor="#3b6ea5"><font color="white"><b>Winery</b></font></td></tr>
+    <tr><td align="left">PK (name, country)</td></tr></table>>];
+  Region [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="4" color="#3b6ea5">
+    <tr><td bgcolor="#3b6ea5"><font color="white"><b>Region</b></font></td></tr>
+    <tr><td align="left">PK (name, province)</td></tr></table>>];
+  Province [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="4" color="#3b6ea5">
+    <tr><td bgcolor="#3b6ea5"><font color="white"><b>Province</b></font></td></tr>
+    <tr><td align="left">PK (name, country)</td></tr></table>>];
+  Country [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="4" color="#3b6ea5">
+    <tr><td bgcolor="#3b6ea5"><font color="white"><b>Country</b></font></td></tr>
+    <tr><td align="left">PK name</td></tr></table>>];
+  Taster [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="4" color="#3b6ea5">
+    <tr><td bgcolor="#3b6ea5"><font color="white"><b>Taster</b></font></td></tr>
+    <tr><td align="left">PK name</td></tr>
+    <tr><td align="left">twitter : string</td></tr></table>>];
+  Descriptor [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="4" color="#3b6ea5">
+    <tr><td bgcolor="#3b6ea5"><font color="white"><b>Descriptor</b></font></td></tr>
+    <tr><td align="left">PK name (lowercase)</td></tr>
+    <tr><td align="left">style_id : int</td></tr>
+    <tr><td align="left">common : bool</td></tr></table>>];
+  Food [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="4" color="#2e7d4f">
+    <tr><td bgcolor="#2e7d4f"><font color="white"><b>Food</b></font></td></tr>
+    <tr><td align="left">PK name (lowercase)</td></tr></table>>];
+
+  Wine -> Variety    [label="N : 1  OF_VARIETY"];
+  Wine -> Winery     [label="N : 1  MADE_BY"];
+  Wine -> Region     [label="N : 0..1  FROM"];
+  Wine -> Province   [label="N : 0..1  FROM", style=dashed];
+  Region -> Province [label="N : 1  IN"];
+  Province -> Country [label="N : 1  IN"];
+  Taster -> Wine     [label="1 : N  REVIEWED (0..1 per wine)"];
+  Wine -> Descriptor [label="N : M  HAS_NOTE"];
+  Variety -> Food    [label="N : M  PAIRS_WITH {weight}", color="#2e7d4f"];
+  Wine -> Wine       [label="N : M  SIMILAR_TO {score}\n(top 10 per wine)", color="#c0661a"];
+}
