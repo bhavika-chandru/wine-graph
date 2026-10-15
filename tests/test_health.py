@@ -8,6 +8,9 @@ import os
 import urllib.request
 
 import pytest
+from dotenv import load_dotenv
+
+load_dotenv()  # NEO4J_USER / NEO4J_PASSWORD from .env, like the API itself
 
 pytestmark = [
     pytest.mark.integration,
