@@ -1,0 +1,30 @@
+digraph arch {
+  graph [rankdir=LR, bgcolor="white", pad=0.4, nodesep=0.5, ranksep=0.9, fontname="Helvetica", label="Architecture (docker compose)", labelloc=t, fontsize=16, compound=true];
+  node  [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=11, color="#3b6ea5", fillcolor="#e8f0fa", penwidth=1.3];
+  edge  [fontname="Helvetica", fontsize=10, color="#555555", fontcolor="#333333"];
+
+  client [label="Client\n(browser, curl, notebook)", fillcolor="#f2f2f2", color="#777777"];
+  subgraph cluster_compose {
+    label="docker compose network"; style="rounded,dashed"; color="#999999"; fontsize=12;
+    nginx [label=<<b>nginx</b> :80<br/><font point-size="9">only public port<br/>16 KB body limit<br/>10 req/s on /api/ask</font>>];
+    api   [label=<<b>api</b> :8000 (FastAPI)<br/><font point-size="9">routers / services / Cypher<br/>read-only transactions + timeout<br/>NL-&gt;Cypher agent + guardrails<br/>tier classifier (joblib)</font>>];
+    neo4j [label=<<b>neo4j</b> 5 + GDS<br/><font point-size="9">:7687 Bolt, :7474 Browser<br/>(bound to 127.0.0.1)<br/>volume neo4j_data</font>>];
+    models [label="./models\n(read-only mount)", shape=folder, fillcolor="#fff6e5", color="#c0661a"];
+  }
+  llm   [label="LLM provider\n(OpenAI-compatible:\nGroq / Ollama)", fillcolor="#f2f2f2", color="#777777"];
+  host  [label=<<b>host</b> (make)<br/><font point-size="9">make seed: CSV -&gt; graph<br/>make gds: similarity, styles,<br/>FastRP, classifier</font>>, fillcolor="#fff6e5", color="#c0661a"];
+  data  [label="data/raw\nWineEnthusiast CSV\nX-Wines CSV", shape=cylinder, fillcolor="#f2f2f2", color="#777777"];
+  gh    [label="GitHub Actions\nlint + tests on every PR\nimage push on merge", fillcolor="#f2f2f2", color="#777777"];
+  ghcr  [label="ghcr.io\nwine-graph-api image", shape=cylinder, fillcolor="#f2f2f2", color="#777777"];
+
+  client -> nginx [label="HTTP"];
+  nginx -> api [label="proxy"];
+  api -> neo4j [label="Bolt (read)"];
+  api -> llm [label="HTTPS\n(/api/ask only)", style=dashed];
+  models -> api [style=dotted, arrowhead=none];
+  data -> host;
+  host -> neo4j [label="Bolt (admin)"];
+  host -> models [label="writes model", style=dotted];
+  gh -> ghcr [label="push"];
+  ghcr -> api [label="API_IMAGE\n(optional)", style=dashed];
+}
