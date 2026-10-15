@@ -18,7 +18,7 @@ Requirements: Docker Desktop, Python 3.11+, `make` (on Windows, use WSL Ubuntu).
 ```bash
 git clone https://github.com/bhavika-chandru/wine-graph.git
 cd wine-graph
-cp .env.example .env          # fill in passwords; .env is never committed
+cp .env.example .env          # fill in passwords and API_KEY; .env is never committed
 make install                  # .venv + dependencies
 make docker-run               # neo4j + api + nginx
 make seed                     # load both datasets
@@ -26,6 +26,8 @@ make gds                      # similarity, flavour families, embeddings, classi
 ```
 
 Open **http://localhost/docs** for the interactive API (Swagger), served through Nginx.
+
+`POST /api/ask` needs the `API_KEY` from `.env` in an `X-API-Key` header; without it the API answers 401.
 
 <!-- TODO (P2): link to the image on Docker Hub / GHCR -->
 Pre-built API image: `TODO`
@@ -72,6 +74,7 @@ Two distinct sources, joined at the level of shared dimensions (variety, country
 (:Wine)-[:MADE_BY]->(:Winery)
 (:Wine)-[:OF_VARIETY]->(:Variety)-[:PAIRS_WITH {weight}]->(:Food)
 (:Wine)-[:FROM]->(:Region)-[:IN]->(:Province)-[:IN]->(:Country)
+(:Wine)-[:FROM]->(:Province)          // when the review has no region_1
 (:Taster)-[:REVIEWED]->(:Wine)
 (:Wine)-[:HAS_NOTE]->(:Descriptor)
 ```
