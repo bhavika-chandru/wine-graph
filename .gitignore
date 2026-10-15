@@ -1,0 +1,27 @@
+# Secrets: never commit (-5 points per secret)
+.env
+*.env
+!.env.example
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# Data and generated artefacts
+data/raw/
+data/full/
+models/*.joblib
+benchmarks/results/*.json
+neo4j/data/
+neo4j/logs/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+.ipynb_checkpoints/
