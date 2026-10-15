@@ -145,7 +145,7 @@ Interactive docs are served at `/docs` (Swagger UI).
 <details>
 <summary>Example responses: a filtered list (200) and an unknown wine (404)</summary>
 
-`GET /api/wines?min_points=90&limit=3`, run on the synthetic benchmark dataset:
+`GET /api/wines?min_points=90&limit=3` on the real data, through Nginx (note `server: nginx` in the response headers):
 
 ![200 response](docs/img/swagger_list_200.png)
 
@@ -235,12 +235,21 @@ Measured with `make bench` on 100,000 synthetic wines (`make bench-data`, same s
 | Wine detail: OPTIONAL MATCH chain vs pattern comprehensions | 3.6 ms | 7.6 ms | ×0.5 | 83 → 113 |
 | Pagination: full result vs `SKIP/LIMIT` | 1,734 ms | 6.1 ms | ×285 | 272,404 → 61 |
 
+Measured again on the **real data** (119,929 wines, in the Docker Compose Neo4j), same method:
+
+| Case | Before | After | Speed-up | db hits |
+|---|---|---|---|---|
+| Range filter: no index vs range index | 32.1 ms | 7.4 ms | ×4.3 | 242,473 → 1,345 |
+| Optional filters: `$x IS NULL OR` vs needed clauses only | 54.9 ms | 9.1 ms | ×6.0 | 317,731 → 6,731 |
+| Wine detail: OPTIONAL MATCH chain vs pattern comprehensions | 3.2 ms | 3.0 ms | ×1.1 | 146 → 189 |
+| Pagination: full result vs `SKIP/LIMIT` | 2,285.6 ms | 3.4 ms | ×675.1 | 323,536 → 61 |
+
 What the numbers say:
 - **Indexes and pagination** give the large gains. Without the range index Neo4j reads every Wine node; with it, the plan switches from `NodeByLabelScan` to `NodeIndexSeekByRange`.
-- **Catch-all filters** (`$x IS NULL OR w.points >= $x`) cannot be answered from an index, so the list query is built from only the clauses that are set. The gain is real but modest here, because the planner chose the price index.
-- **Pattern comprehensions** are not faster for a single wine. They are kept for correctness: they never duplicate rows, so no `collect()` or `DISTINCT` is needed.
+- **Catch-all filters** (`$x IS NULL OR w.points >= $x`) cannot be answered from an index, so the list query is built from only the clauses that are set. On the synthetic data the gain was modest (×1.3) because the planner chose the price index; on the real data it is ×6.
+- **Pattern comprehensions** are not faster for a single wine (slower on the synthetic data, equal on the real data). They are kept for correctness: they never duplicate rows, so no `collect()` or `DISTINCT` is needed.
 
-Full plans per case: [docs/benchmarks.md](docs/benchmarks.md).
+Full plans per case, on the real data: [docs/benchmarks.md](docs/benchmarks.md).
 
 | Without index: `NodeByLabelScan` | With range index: `NodeIndexSeekByRange` |
 |---|---|
