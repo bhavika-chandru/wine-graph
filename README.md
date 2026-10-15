@@ -312,14 +312,18 @@ In short, it proposed `Wine`, `Winery`, `Region`, `Country`, `Grape`, `Review`, 
 
 ## Team
 
-<!-- TODO (Bhavika, last step): fill from GitHub Insights → Contributors -->
+Contributions on `main` from GitHub Insights → Contributors, before this last PR (29 commits in total).
+Every change went through a pull request with at least one review from another member.
 
-| Member | Role | Commits | % | Merged PRs |
-|---|---|---|---|---|
-| Bhavika Chandru | Backend, API, performance, team lead | | | |
-| | Data and infrastructure | | | |
-| | AI agent and Graph Data Science | | | |
+| Member | Role | What they built | Commits | Lines added | Merged PRs |
+|---|---|---|---|---|---|
+| Bhavika Chandru (`bhavika-chandru`) | Backend, API, performance, team lead | FastAPI app, every endpoint's Cypher, error handling, read-only client, Nginx config, Dockerfile, live Cypher tests, benchmarks and PROFILE analysis, README | 14 (48%) | 3,863 (60%) | [list](https://github.com/bhavika-chandru/wine-graph/pulls?q=is%3Apr+is%3Amerged+author%3Abhavika-chandru) |
+| Ditri (`ditricollaku`) | AI agent and Graph Data Science | GDS pipeline (Node Similarity, lift-weighted Louvain, FastRP, tier classifier), NL→Cypher agent with guardrails and its evaluation, demo notebook | 8 (28%) | 1,757 (28%) | [list](https://github.com/bhavika-chandru/wine-graph/pulls?q=is%3Apr+is%3Amerged+author%3Aditricollaku) |
+| Yash (`yashmadori`) | Data and infrastructure | ETL for both datasets, constraints and indexes, Docker Compose stack, GitHub Actions (lint, tests, image push), diagrams | 7 (24%) | 768 (12%) | [list](https://github.com/bhavika-chandru/wine-graph/pulls?q=is%3Apr+is%3Amerged+author%3Ayashmadori) |
 
 ## Use of AI tools
 
-<!-- TODO (team): state honestly which AI tools were used and for what -->
+- **Claude (Anthropic)** was used throughout as a coding assistant: drafting code, tests and README text, suggesting review points, and debugging errors from our terminal output. Every draft was run on our machines against the real data, and changed when it failed (for example the memory-safe wipe in the ETL, the province example in the agent prompt, the Nginx health check). Review points were checked against the code before being posted.
+- **ChatGPT** produced the naive schema used in the anti-genericity appendix, from a one-line prompt in a fresh chat, so we could compare it with ours.
+- **Groq (`openai/gpt-oss-120b`)** is part of the product: it writes the Cypher and the summary for `/api/ask`. Its output is never trusted directly: guardrails, `EXPLAIN` and read-only transactions sit around it, and the summary is marked as AI-generated.
+- All design decisions (schema, keys, which algorithms, what to measure) were discussed and decided by the team, and each of us can explain the parts we own.
