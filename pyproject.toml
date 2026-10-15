@@ -11,4 +11,3 @@ markers = [
 
 [tool.coverage.run]
 source = ["app"]
-omit = ["app/agent/*"]  # TODO: remove when the NL->Cypher agent is merged

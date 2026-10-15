@@ -19,6 +19,12 @@ class Settings(BaseSettings):
     # If set, POST /api/ask requires the header X-API-Key with this value.
     api_key: str = ""
 
+    # NL->Cypher agent (app/agent), any OpenAI-compatible chat endpoint. If unset,
+    # POST /api/ask answers 503 and the rest of the API still works.
+    llm_api_url: str = ""
+    llm_api_key: str = ""
+    llm_model: str = ""
+
     # Classifier trained by scripts/gds_setup.py (Person 3).
     model_path: str = "models/tier_classifier.joblib"
 
