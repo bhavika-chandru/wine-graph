@@ -13,7 +13,7 @@ Built with **Neo4j 5 + Graph Data Science**, **FastAPI**, an **NL→Cypher** age
 
 ## Quick start
 
-Requirements: Docker Desktop, Python 3.11+, `make` (on Windows, use WSL Ubuntu).
+Requirements: Docker Desktop with at least 4 GB of memory, Python 3.11+, `make` (on Windows, use WSL Ubuntu).
 
 ```bash
 git clone https://github.com/bhavika-chandru/wine-graph.git
