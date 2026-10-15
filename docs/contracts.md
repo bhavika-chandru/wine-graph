@@ -14,7 +14,7 @@ If you need to change one of these, open a PR that edits this file first, so the
 | `Province` | `(name, country)` | `name` | str |
 | `Country` | `name` (unique) | `name` | str |
 | `Taster` | `name` (unique) | `name` | str |
-| `Descriptor` | `name` (unique) | `name` | str (lowercase) |
+| `Descriptor` | `name` (unique) | `name`, `style_id`, `common` | str (lowercase), int, bool |
 | `Food` | `name` (unique) | `name` | str (**lowercase**; the API lowercases user input) |
 
 - `Wine.id` is an **integer** (the row id of the WineEnthusiast CSV). The API path parameter is an int, and `{id: $id}` only matches if the stored type is the same.
@@ -39,6 +39,7 @@ The API only **reads** precomputed results; nothing runs GDS inside a request.
 | Result | Written as | Read by |
 |---|---|---|
 | Node Similarity (Jaccard), top-k per wine | `(:Wine)-[:SIMILAR_TO {score: float}]->(:Wine)` | `GET /api/wines/{id}/similar` (falls back to a Cypher Jaccard only if the wine has no `SIMILAR_TO` at all) |
+| Too-common descriptors (on more than 20% of wines) | `Descriptor.common` (bool) | `make gds` only: left out of Node Similarity and Louvain |
 | Louvain flavour families | `Descriptor.style_id` (int) | `GET /api/styles`, `GET /api/styles/{id}` |
 | FastRP embeddings | `Wine.fastrp` (list of floats) | `GET /api/wines/{id}/predicted-tier` |
 | Classifier | `models/tier_classifier.joblib` (scikit-learn, has `predict_proba` and `classes_`); mounted into the api container with `./models:/srv/models:ro` | same endpoint; class labels are returned as strings, e.g. `"high"` / `"standard"` |
