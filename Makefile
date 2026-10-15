@@ -6,7 +6,7 @@ IMAGE   ?= wine-graph-api
 COMPOSE := docker compose
 
 .DEFAULT_GOAL := help
-.PHONY: help install run docker-build docker-run docker-down test test-db test-integration lint format clean tree seed gds eval bench
+.PHONY: help install run docker-build docker-run docker-down test test-db test-integration lint format clean tree seed gds eval bench bench-data
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
@@ -56,6 +56,9 @@ gds: ## GDS projections, algorithms and classifier (Person 3)
 
 eval: ## NL->Cypher evaluation on tests/eval/nl_questions.json (Person 3)
 	$(PYTHON) scripts/eval_nl.py
+
+bench-data: ## Load ~100k synthetic wines into the dev Neo4j for benchmarks (asks before wiping it)
+	$(PYTHON) scripts/generate_bench_data.py
 
 bench: ## Before/after query benchmarks + PROFILE plans (writes docs/benchmarks.md)
 	$(PYTHON) scripts/benchmark.py
