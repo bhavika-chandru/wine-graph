@@ -94,6 +94,9 @@ YIELD communityCount, modularity
 RETURN communityCount, modularity
 """
 
+# FastRP keeps the common descriptors on purpose: it does not compare wines note by note,
+# it summarises each wine's neighbourhood, and a very common note simply carries little signal.
+# Similarity and Louvain drop them because there a shared 'fruit' would make everything look alike.
 PROJECT_EMBED = """
 CALL gds.graph.project('wine_embed',
   ['Wine', 'Descriptor', 'Variety', 'Region', 'Province', 'Winery'],
