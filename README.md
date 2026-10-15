@@ -164,13 +164,26 @@ Pipeline: scope check → entity grounding (full-text indexes) → generation (s
 
 ## Graph Data Science and ML
 
-<!-- TODO (P3): projection names, algorithm settings, results, classifier metrics -->
+Results of `make gds` on the full data (119,929 wines, 390 s). Details and settings are in `scripts/gds_setup.py`.
 
-| Algorithm | Projection | Output | Used by |
-|---|---|---|---|
-| Node Similarity (Jaccard) | Wine–Descriptor bipartite | `SIMILAR_TO {score}`, top-k per wine | `/api/wines/{id}/similar` |
-| Louvain | Descriptor co-occurrence | `Descriptor.style_id` | `/api/styles` |
-| FastRP + logistic regression / random forest | Wine graph | `Wine.fastrp`, `models/tier_classifier.joblib` | `/api/wines/{id}/predicted-tier` |
+| Step | Projection | Settings | Result | Used by |
+|---|---|---|---|---|
+| Supernode filter | none | descriptors on more than 20% of wines get `common = true` | only "fruit" (38% of wines) | similarity and styles |
+| Node Similarity (Jaccard) | `wine_notes`: Wine → Descriptor, common descriptors left out | top 10 per wine, cutoff 0.1 | 1,149,750 `SIMILAR_TO` for 114,975 wines | `/api/wines/{id}/similar` |
+| Louvain | `note_pairs`: descriptor pairs that meet at least 3 times and 1.2× more often than chance, weighted by lift | weighted, consecutive ids | 3 flavour families, modularity 0.394 | `/api/styles` |
+| FastRP | `wine_embed`: Wine, Descriptor, Variety, Region, Province, Winery (undirected) | 64 dims, iteration weights [0, 1, 1], seed 42 | 119,929 `Wine.fastrp` | `/api/wines/{id}/predicted-tier` |
+| Logistic regression | FastRP vectors only: points and price are not inputs | balanced class weights, 80/20 stratified split | table below | same |
+
+**Why lift for Louvain:** weighting pairs by raw co-occurrence lets the most popular notes link everything into one community. Lift keeps only pairs that meet more often than their popularity predicts, which is what a flavour family is.
+
+**Classifier** (`high` = 90 points or more):
+
+| Model | Accuracy | Macro F1 |
+|---|---|---|
+| Always predict the majority tier | 0.620 | 0.383 |
+| Logistic regression on FastRP | 0.599 | 0.591 |
+
+The tiers are imbalanced (62% `standard`), so accuracy is misleading: always answering `standard` already scores 0.620. Macro F1 weighs both tiers equally. The model reaches 0.591 against 0.383 for the baseline, so a wine's neighbourhood (its notes, grape, place and producer) carries real information about its quality, but far from enough to replace the critic's score.
 
 PageRank is deliberately not used: it measures endorsement through directed links, which a wine–attribute graph does not have.
 
