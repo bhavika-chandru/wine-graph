@@ -16,13 +16,17 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from dotenv import load_dotenv
 from neo4j import GraphDatabase, Session
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 # pylint: disable=wrong-import-position
 from app.models.common import PageParams
+from app.services.base import WINE_SUMMARY_RETURN
 from app.services.wine_service import WINE_DETAIL_QUERY, WineFilters, build_wine_list_query
+
+load_dotenv()  # NEO4J_ADMIN_USER / NEO4J_ADMIN_PASSWORD from .env
 
 RUNS = int(os.getenv("BENCH_RUNS", "10"))
 WARMUP = 2
@@ -96,18 +100,22 @@ def measure(session: Session, variant: Variant) -> Measurement:
         start = time.perf_counter()
         list(session.run(variant.cypher, variant.params))
         timings.append((time.perf_counter() - start) * 1000)
-    summary = session.run("PROFILE " + variant.cypher, variant.params).consume()
+    profiled = session.run("PROFILE " + variant.cypher, variant.params)
+    list(profiled)  # Neo4j only attaches profiler stats once the rows have been read
+    summary = profiled.consume()
     hits, ops = _flatten(summary.profile)
     return Measurement(statistics.median(timings), hits, ops)
 
 
+# Same filters, ordering, page size and returned columns as build_wine_list_query,
+# only the WHERE clause differs (catch-all "IS NULL OR" form).
 NAIVE_FILTER_QUERY = """
-MATCH (w:Wine)-[:OF_VARIETY]->(v:Variety)
-WHERE ($variety IS NULL OR v.name = $variety)
-  AND ($min_points IS NULL OR w.points >= $min_points)
+MATCH (w:Wine)
+WHERE ($min_points IS NULL OR w.points >= $min_points)
+  AND ($min_price IS NULL OR w.price >= $min_price)
   AND ($max_price IS NULL OR w.price <= $max_price)
-RETURN w.id, w.title ORDER BY w.points DESC SKIP 0 LIMIT 21
-"""
+WITH DISTINCT w ORDER BY w.points DESC, w.id ASC SKIP $skip LIMIT $limit
+""" + WINE_SUMMARY_RETURN
 
 NAIVE_DETAIL_QUERY = """
 MATCH (w:Wine {id: $id})
@@ -136,7 +144,7 @@ def build_cases(session: Session) -> list[Case]:
     wine_id = sample["id"] if sample else 0
     page = PageParams(skip=0, limit=20)
     rewritten, rewritten_params = build_wine_list_query(
-        WineFilters(variety="Riesling", min_points=92), page
+        WineFilters(min_points=95, max_price=30), page
     )
     return [
         Case(
@@ -147,19 +155,22 @@ def build_cases(session: Session) -> list[Case]:
         ),
         Case(
             "Optional filters: `$x IS NULL OR` vs query built from needed clauses",
-            "The catch-all WHERE hides the predicate from the planner; building only the needed clauses "
-            + "lets it start from the Variety node and use the points index.",
+            "Both return the same columns for the same filters (points >= 95, price <= 30). "
+            + "`$x IS NULL OR w.points >= $x` cannot be answered from an index, so the planner scans "
+            + "every Wine; building only the needed clauses lets it seek on the points index.",
             Variant(
-                "naive",
+                "catch-all WHERE",
                 NAIVE_FILTER_QUERY,
-                {"variety": "Riesling", "min_points": 92, "max_price": None},
+                {"min_points": 95, "min_price": None, "max_price": 30, "skip": 0, "limit": 21},
             ),
             Variant("rewritten", rewritten, rewritten_params),
         ),
         Case(
             "Wine detail: OPTIONAL MATCH chain vs pattern comprehensions",
-            "Chained OPTIONAL MATCH multiplies rows (notes x location paths) before collecting; "
-            + "pattern comprehensions fetch each value once per wine.",
+            "For a single wine both are a few milliseconds: the chain only multiplies rows by the "
+            + "number of notes, which is small. Pattern comprehensions are kept for correctness, not "
+            + "speed: they never duplicate rows, so no collect()/DISTINCT is needed, which matters in "
+            + "list queries where several multi-valued relationships are combined.",
             Variant("OPTIONAL MATCH chain", NAIVE_DETAIL_QUERY, {"id": wine_id}),
             Variant("pattern comprehensions", WINE_DETAIL_QUERY, {"id": wine_id}),
         ),
