@@ -49,7 +49,6 @@ format: ## Format code with black
 seed: ## ETL both sources into Neo4j (Person 2)
 	$(PYTHON) scripts/create_constraints.py
 	$(PYTHON) scripts/seed_data.py
-	$(PYTHON) scripts/load_xwines.py
 
 gds: ## GDS projections, algorithms and classifier (Person 3)
 	$(PYTHON) scripts/gds_setup.py

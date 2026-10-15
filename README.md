@@ -60,7 +60,13 @@ Two distinct sources, joined at the level of shared dimensions (variety, country
 
 > Azambuja, R. X., Morais, A. J., & Filipe, V. (2023). X-Wines: A Wine Dataset for Recommender Systems and Machine Learning. *Big Data and Cognitive Computing*, 7(1), 20. https://doi.org/10.3390/bdcc7010020
 
-<!-- TODO (P2): ETL notes (cleaning, vintage parsing, variety normalisation map, unmatched values) -->
+**ETL notes** (`make seed`, numbers from the last run)
+
+- 129,971 rows read. 9,979 exact duplicate reviews (same title and description) and 63 rows without a country or province are dropped, leaving **119,929 wines**.
+- `Wine.id` is the CSV row id. 19,501 wines have no `region_1` and are linked straight to their province. 8,391 have no price (kept; they never match a price filter). The vintage is the first year in the title; 4,283 have none (mostly non-vintage sparkling).
+- Descriptors: 121 tasting terms found in the reviews, from a fixed vocabulary of about 150, with synonyms merged ("earthy" -> earth, "cassis" -> blackcurrant). 1,857 reviews contain none.
+- X-Wines is joined on grape name ("Syrah/Shiraz" matches either): 1,007 wines match 78 of the 701 varieties and give 504 `PAIRS_WITH` (a food is kept when at least 25% of that variety's X-Wines wines list it), plus the typical type, body, acidity and average crowd rating. Varieties with fewer than 3 X-Wines wines get no pairings.
+- 19 tasters; 95,012 reviews name their taster.
 
 ---
 
