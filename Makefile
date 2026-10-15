@@ -6,7 +6,7 @@ IMAGE   ?= wine-graph-api
 COMPOSE := docker compose
 
 .DEFAULT_GOAL := help
-.PHONY: help install run docker-build docker-run docker-down test test-integration lint format clean tree seed gds eval bench
+.PHONY: help install run docker-build docker-run docker-down test test-db test-integration lint format clean tree seed gds eval bench
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
@@ -32,7 +32,10 @@ docker-down: ## Stop the stack
 	$(COMPOSE) down
 
 test: ## Unit and API tests with coverage (no database needed)
-	$(PYTHON) -m pytest -m "not integration" --cov --cov-report=term-missing --cov-report=xml --cov-fail-under=60
+	$(PYTHON) -m pytest -m "not integration and not db" --cov --cov-report=term-missing --cov-report=xml --cov-fail-under=60
+
+test-db: ## Every query against a dev Neo4j loaded with tests/fixtures/seed.cypher (WIPES that DB)
+	RUN_DB_TESTS=1 $(PYTHON) -m pytest -m db -v
 
 test-integration: ## Health tests against the running compose stack
 	RUN_INTEGRATION=1 $(PYTHON) -m pytest -m integration -v

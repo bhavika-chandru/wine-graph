@@ -4,7 +4,10 @@ target-version = ["py311"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-markers = ["integration: needs the running docker compose stack (RUN_INTEGRATION=1)"]
+markers = [
+    "integration: needs the running docker compose stack (RUN_INTEGRATION=1)",
+    "db: needs a dev Neo4j loaded with tests/fixtures/seed.cypher (RUN_DB_TESTS=1)",
+]
 
 [tool.coverage.run]
 source = ["app"]

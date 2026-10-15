@@ -59,7 +59,7 @@ def answer_question(question: str, client: GraphReader) -> AskResponse: ...
 ## 5. Read-only access
 
 Neo4j **Community** edition has no role-based access control, so a separate read-only user cannot be created there.
-Instead, every API query runs in a **read transaction** (`execute_read` with `READ_ACCESS`), and Neo4j should refuse writes in that mode. This has not been verified yet, so check it once against the real database:
+Instead, every API query runs in a **read transaction** (`execute_read` with `READ_ACCESS`), and Neo4j refuses writes in that mode. Verified on Neo4j 5 by `tests/test_queries_live.py::test_writes_are_refused_in_read_transactions`:
 
 ```cypher
 // should fail with "Writing in read access mode not allowed" when sent through client.read()
