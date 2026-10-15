@@ -54,7 +54,7 @@ gds: ## GDS projections, algorithms and classifier (Person 3)
 	$(PYTHON) scripts/gds_setup.py
 
 eval: ## NL->Cypher evaluation on tests/eval/nl_questions.json (Person 3)
-	$(PYTHON) scripts/eval_nl.py
+	$(PYTHON) -m scripts.eval_nl
 
 bench-data: ## Load ~100k synthetic wines into the dev Neo4j for benchmarks (asks before wiping it)
 	$(PYTHON) scripts/generate_bench_data.py

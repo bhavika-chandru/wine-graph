@@ -152,20 +152,32 @@ Design decisions behind the API (parameterised queries, read-only transactions, 
 
 ## NL→Cypher agent
 
-<!-- TODO (P3): pipeline, provider, prompt design, examples -->
+Code: `app/agent/` (`pipeline.py`, `guardrails.py`, `prompts.py`, `llm.py`). Any OpenAI-compatible chat endpoint works: set `LLM_API_URL`, `LLM_API_KEY` and `LLM_MODEL` in `.env` (we used Groq with `openai/gpt-oss-120b`; a local Ollama model also works, without a key). Without them, `/api/ask` answers 503 and the rest of the API is unaffected.
 
-Pipeline: scope check → entity grounding (full-text indexes) → generation (schema + few-shot, temperature 0) → static validation → `EXPLAIN` check with one retry → read-only execution → summary written only from the returned rows.
+Pipeline: scope check → entity grounding (exact names of countries, provinces, regions, grapes, critics, notes and foods looked up in the graph and given to the model) → generation (schema + few-shot, temperature 0) → static validation → `EXPLAIN` check with one retry → read-only execution → summary written only from the returned rows.
 
 | Failure | Detection | Handling |
 |---|---|---|
-| Write or admin clause (`CREATE`, `DELETE`, `CALL dbms`…) | Blocklist | Rejected (HTTP 400) |
-| Unknown label, relationship or property | Whitelist | Rejected before execution |
+| Question asking to change data ('delete ...', 'drop ...') | Keyword check before any model call | Rejected (HTTP 400) |
+| Write or admin clause (`CREATE`, `SET`, `DELETE`, `CALL` ...) in the generated query | Blocklist | Rejected (HTTP 400), no retry |
+| Off-topic question | The model answers `OUT_OF_SCOPE` | Rejected (HTTP 400) |
+| Unknown label, relationship or property | Whitelist | One retry with the problem, then rejected (never executed) |
 | Unbounded path, missing `LIMIT` | Static check | Bounded / `LIMIT` injected |
 | Syntax error | `EXPLAIN` | One retry with the error, then 400 |
 | Hallucinated answer | Summary built from rows only | `provenance` marks rows as *verified (database)* and summary as *AI-generated* |
 | Everything above fails | Read transaction + timeout | Neo4j refuses writes (verified by `tests/test_queries_live.py`) |
 
-<!-- TODO (P3): evaluation results on tests/eval/nl_questions.json (% valid, % correct, % correctly rejected) -->
+**Prompt design:** the system prompt holds the schema (with the ragged place hierarchy spelled out), the rules, and 7 worked examples. The examples deliberately differ from the evaluation questions.
+
+**Evaluation** (`make eval`, 20 questions in `tests/eval/nl_questions.json`, full table in [docs/nl_eval.md](docs/nl_eval.md)). Each answerable question has a hand-written gold query; an answer counts as correct when the gold values appear in the agent's rows (numbers within rounding).
+
+| Metric | Result |
+|---|---|
+| Valid query executed | 15/15 |
+| Correct answer | 15/15 |
+| Correctly rejected (2 write requests, 1 prompt injection, 1 off-topic, 1 admin request) | 5/5 |
+
+Honest caveats: 20 questions is a small set. The first run scored 13/15. One failure was our scoring (rounding twice); the other was real: the model matched a *region named* Oregon instead of wines *in* the province. We then added a province example to the prompt (Burgundy, not Oregon), so the second run is not fully independent of the first.
 
 ---
 

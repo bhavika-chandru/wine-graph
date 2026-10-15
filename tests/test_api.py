@@ -2,6 +2,8 @@
 
 from types import SimpleNamespace
 
+from app.agent import pipeline
+from app.errors import ServiceNotReadyError
 from app.models.ask import AskResponse
 from app.routers import ask as ask_router
 from tests.conftest import wine_row
@@ -251,8 +253,13 @@ def test_style_unknown(api, fake):
     assert api.get("/api/styles/99").status_code == 404
 
 
-def test_ask_not_implemented_yet(api):
-    """Ask not implemented yet."""
+def _no_llm():
+    raise ServiceNotReadyError("NL->Cypher needs LLM_API_URL and LLM_MODEL in .env")
+
+
+def test_ask_without_llm_key_is_503(api, monkeypatch):
+    """No model configured: /api/ask answers 503 instead of crashing."""
+    monkeypatch.setattr(pipeline, "make_llm", _no_llm)
     assert api.post("/api/ask", json={"question": "Best Riesling under 20?"}).status_code == 503
 
 
@@ -286,11 +293,12 @@ def test_ask_requires_api_key_when_configured(api, monkeypatch):
     """Ask requires api key when configured."""
     fake_settings = SimpleNamespace(api_key="secret")
     monkeypatch.setattr("app.deps.get_settings", lambda: fake_settings)
+    monkeypatch.setattr(pipeline, "make_llm", _no_llm)
     assert api.post("/api/ask", json={"question": "Best Riesling?"}).status_code == 401
     response = api.post(
         "/api/ask", json={"question": "Best Riesling?"}, headers={"X-API-Key": "secret"}
     )
-    assert response.status_code == 503  # key accepted; agent stub not implemented yet
+    assert response.status_code == 503  # key accepted; no LLM key in this test
 
 
 def test_openapi_lists_all_endpoints(api):
