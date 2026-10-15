@@ -80,6 +80,11 @@ RETURN w.id AS id, w.title AS title, w.price AS price, w.points AS points,
        [(w)-[:HAS_NOTE]->(d:Descriptor) | d.name] AS notes
 """
 
+# Existence check + whether GDS results exist for this wine (one index lookup).
+SIMILAR_ANCHOR_QUERY = (
+    "MATCH (w:Wine {id: $id}) RETURN COUNT { (w)-[:SIMILAR_TO]->() } AS gds_neighbours"
+)
+
 # Top-k neighbours written by GDS Node Similarity (scripts/gds_setup.py, write mode).
 SIMILAR_GDS_QUERY = """
 MATCH (anchor:Wine {id: $id})-[s:SIMILAR_TO]->(w:Wine)
@@ -131,21 +136,31 @@ class WineService(BaseService):
     def similar(
         self, wine_id: int, page: PageParams, max_price: float | None = None
     ) -> tuple[list[dict[str, Any]], bool, str]:
-        """Similar wines from GDS results if present, else from the Cypher Jaccard fallback."""
-        self._require_wine(wine_id)
+        """Similar wines from GDS results, or from the Cypher Jaccard fallback.
+
+        The fallback is used only when the wine has no SIMILAR_TO neighbours at all.
+        If GDS neighbours exist but filters (e.g. max_price) remove them, the page is
+        simply empty: switching method would mix two score scales in one endpoint.
+        """
+        anchor = self.client.read(SIMILAR_ANCHOR_QUERY, {"id": wine_id})
+        if not anchor:
+            raise NotFoundError("Wine", wine_id)
         params = {"id": wine_id, "max_price": max_price, "skip": page.skip, "limit": page.limit + 1}
-        rows = self.client.read(SIMILAR_GDS_QUERY, params)
-        method = "gds_node_similarity"
-        if not rows and page.skip == 0:
-            rows = self.client.read(SIMILAR_CYPHER_QUERY, params)
-            method = "cypher_jaccard"
-        items, has_more = split_page(rows, page.limit)
+        if anchor[0]["gds_neighbours"] > 0:
+            query, method = SIMILAR_GDS_QUERY, "gds_node_similarity"
+        else:
+            query, method = SIMILAR_CYPHER_QUERY, "cypher_jaccard"
+        items, has_more = split_page(self.client.read(query, params), page.limit)
         return items, has_more, method
 
     def best_value(
         self, page: PageParams, max_price: float, min_points: int, variety: str | None = None
     ) -> tuple[list[dict[str, Any]], bool]:
-        """Highest points per unit of price under a price cap."""
+        """Highest points per unit of price, among wines that already reach ``min_points``.
+
+        Raw points/price always favours the cheapest bottles, so the quality floor is
+        part of the definition: "the cheapest way to get a wine of at least N points".
+        """
         params: dict[str, Any] = {
             "max_price": max_price,
             "min_points": min_points,

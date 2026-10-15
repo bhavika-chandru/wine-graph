@@ -8,4 +8,4 @@ markers = ["integration: needs the running docker compose stack (RUN_INTEGRATION
 
 [tool.coverage.run]
 source = ["app"]
-omit = ["app/agent/*"]
+omit = ["app/agent/*"]  # TODO: remove when the NL->Cypher agent is merged

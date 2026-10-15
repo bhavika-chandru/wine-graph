@@ -97,7 +97,7 @@ def test_value_with_variety_anchors_on_variety(api, fake):
 
 def test_similar_uses_gds_results(api, fake):
     """Similar uses gds results."""
-    fake.queue([{"n": 1}], [{**wine_row(2), "score": 0.6}])
+    fake.queue([{"gds_neighbours": 10}], [{**wine_row(2), "score": 0.6}])
     body = api.get("/api/wines/1/similar").json()
     assert body["method"] == "gds_node_similarity"
     assert body["items"][0]["score"] == 0.6
@@ -105,16 +105,25 @@ def test_similar_uses_gds_results(api, fake):
 
 def test_similar_falls_back_to_cypher(api, fake):
     """Similar falls back to cypher."""
-    fake.queue([{"n": 1}], [], [{**wine_row(3), "score": 0.4}])
+    fake.queue([{"gds_neighbours": 0}], [{**wine_row(3), "score": 0.4}])
     body = api.get("/api/wines/1/similar").json()
     assert body["method"] == "cypher_jaccard"
-    assert len(fake.calls) == 3
+    assert len(fake.calls) == 2
 
 
 def test_similar_unknown_wine(api, fake):
     """Similar unknown wine."""
-    fake.queue([{"n": 0}])
+    fake.queue([])
     assert api.get("/api/wines/1/similar").status_code == 404
+
+
+def test_similar_filtered_gds_results_do_not_fall_back(api, fake):
+    """GDS neighbours filtered out by max_price give an empty page, not the other method."""
+    fake.queue([{"gds_neighbours": 10}], [])
+    body = api.get("/api/wines/1/similar", params={"max_price": 5}).json()
+    assert body["method"] == "gds_node_similarity"
+    assert body["items"] == [] and body["has_more"] is False
+    assert len(fake.calls) == 2
 
 
 def test_predicted_tier(api, fake):

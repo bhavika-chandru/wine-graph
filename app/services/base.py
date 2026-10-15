@@ -3,7 +3,6 @@
 from typing import Any
 
 from app.database.client import GraphReader
-from app.errors import NotFoundError
 
 # Projection reused by every endpoint that returns wines.
 # Pattern comprehensions fetch one value per wine without multiplying rows,
@@ -21,12 +20,6 @@ class BaseService:  # pylint: disable=too-few-public-methods
 
     def __init__(self, client: GraphReader) -> None:
         self.client = client
-
-    def _require_wine(self, wine_id: int) -> None:
-        """Raise NotFoundError if no Wine has this id (index lookup, O(log n))."""
-        rows = self.client.read("MATCH (w:Wine {id: $id}) RETURN count(w) AS n", {"id": wine_id})
-        if not rows or rows[0]["n"] == 0:
-            raise NotFoundError("Wine", wine_id)
 
 
 def split_page(rows: list[dict[str, Any]], limit: int) -> tuple[list[dict[str, Any]], bool]:

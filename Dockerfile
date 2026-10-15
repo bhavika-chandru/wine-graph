@@ -11,10 +11,10 @@ COPY requirements.txt .
 RUN pip install -r requirements.txt
 
 COPY app ./app
-COPY models ./models
 
-# Run as a non-root user
-RUN useradd --create-home appuser && chown -R appuser /srv
+# models/ is mounted at runtime (docker-compose: ./models:/srv/models:ro),
+# so retraining with `make gds` does not require rebuilding or re-pushing the image.
+RUN mkdir -p /srv/models && useradd --create-home appuser && chown -R appuser /srv
 USER appuser
 
 EXPOSE 8000

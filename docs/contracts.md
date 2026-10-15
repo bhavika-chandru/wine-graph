@@ -38,10 +38,10 @@ The API only **reads** precomputed results; nothing runs GDS inside a request.
 
 | Result | Written as | Read by |
 |---|---|---|
-| Node Similarity (Jaccard), top-k per wine | `(:Wine)-[:SIMILAR_TO {score: float}]->(:Wine)` | `GET /api/wines/{id}/similar` (falls back to a Cypher Jaccard if absent) |
+| Node Similarity (Jaccard), top-k per wine | `(:Wine)-[:SIMILAR_TO {score: float}]->(:Wine)` | `GET /api/wines/{id}/similar` (falls back to a Cypher Jaccard only if the wine has no `SIMILAR_TO` at all) |
 | Louvain flavour families | `Descriptor.style_id` (int) | `GET /api/styles`, `GET /api/styles/{id}` |
 | FastRP embeddings | `Wine.fastrp` (list of floats) | `GET /api/wines/{id}/predicted-tier` |
-| Classifier | `models/tier_classifier.joblib` (scikit-learn, has `predict_proba` and `classes_`) | same endpoint; class labels are returned as strings, e.g. `"high"` / `"standard"` |
+| Classifier | `models/tier_classifier.joblib` (scikit-learn, has `predict_proba` and `classes_`); mounted into the api container with `./models:/srv/models:ro` | same endpoint; class labels are returned as strings, e.g. `"high"` / `"standard"` |
 
 The classifier must be trained on the **same** `fastrp` embedding dimension that is written to the graph.
 
