@@ -300,7 +300,9 @@ def wipe(session: Session) -> None:
 def main() -> None:
     """Wipe, create keys, load dimensions, then wines in batches."""
     if "--yes" not in sys.argv:
-        sys.exit(f"This WIPES {URI}. Re-run with --yes (make bench-data does this).")
+        answer = input(f"This WIPES every node in {URI}. Type 'yes' to continue: ")
+        if answer.strip().lower() != "yes":
+            sys.exit("Aborted, nothing was changed.")
     rng = random.Random(SEED)
     dims = build_dimensions(rng)
     wines = build_wines(rng, dims, N_WINES)

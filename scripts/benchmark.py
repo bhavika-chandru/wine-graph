@@ -166,7 +166,7 @@ def build_cases(session: Session) -> list[Case]:
             Variant("rewritten", rewritten, rewritten_params),
         ),
         Case(
-            "Wine detail: OPTIONAL MATCH chain vs pattern comprehensions",
+            "Wine detail (correctness trade-off): OPTIONAL MATCH chain vs pattern comprehensions",
             "For a single wine both are a few milliseconds: the chain only multiplies rows by the "
             + "number of notes, which is small. Pattern comprehensions are kept for correctness, not "
             + "speed: they never duplicate rows, so no collect()/DISTINCT is needed, which matters in "
