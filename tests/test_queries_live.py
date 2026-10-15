@@ -23,6 +23,7 @@ pytestmark = [
 URI = os.getenv("NEO4J_TEST_URI", "bolt://localhost:7687")
 AUTH = (os.getenv("NEO4J_TEST_USER", "neo4j"), os.getenv("NEO4J_TEST_PASSWORD", "devpassword123"))
 SEED = Path(__file__).parent / "fixtures" / "seed.cypher"
+MAX_WINES_TO_WIPE = 1000  # more than this means real (ETL or benchmark) data, not the test seed
 
 
 def _statements(text: str) -> list[str]:
@@ -39,6 +40,13 @@ def _statements(text: str) -> list[str]:
 def neo_fixture():
     """Load the seed once per module and yield a real read-only client."""
     with GraphDatabase.driver(URI, auth=AUTH) as driver:
+        records, _, _ = driver.execute_query("MATCH (w:Wine) RETURN count(w) AS n")
+        wines = records[0]["n"]
+        if wines > MAX_WINES_TO_WIPE and os.getenv("NEO4J_TEST_ALLOW_WIPE") != "1":
+            pytest.fail(
+                f"{URI} holds {wines} wines, so it is not a test database and the seed would wipe it. "
+                "Point NEO4J_TEST_URI at a dev instance, or set NEO4J_TEST_ALLOW_WIPE=1."
+            )
         for statement in _statements(SEED.read_text(encoding="utf-8")):
             driver.execute_query(statement)
     client = Neo4jClient(URI, AUTH)
@@ -64,8 +72,9 @@ def test_health(live):
 
 def test_writes_are_refused_in_read_transactions(neo):
     """The API client runs read transactions, so a CREATE must fail (contracts.md section 5)."""
-    with pytest.raises(Neo4jError):
+    with pytest.raises(Neo4jError) as error:
         neo.read("CREATE (:ShouldNotExist) RETURN 1")
+    assert error.value.code == "Neo.ClientError.Statement.AccessMode"
 
 
 def test_list_by_variety(live):
